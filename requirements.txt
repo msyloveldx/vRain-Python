@@ -1,0 +1,23 @@
+# vRain Python版本依赖包
+# 核心依赖
+reportlab>=4.0.0
+Pillow>=10.0.0
+PyPDF2>=3.0.0
+opencc-python-reimplemented>=0.1.7
+
+# 可选依赖（用于某些高级功能）
+fonttools>=4.40.0
+numpy>=1.24.0
+
+# 开发和测试依赖（可选）
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+
+# 系统要求说明：
+# - Python 3.8 或更高版本
+# - 对于PDF压缩功能，需要安装 Ghostscript
+#   * Windows: 下载并安装 Ghostscript from https://www.ghostscript.com/download/gsdnld.html
+#   * macOS: brew install ghostscript
+#   * Ubuntu/Debian: sudo apt-get install ghostscript
+#   * CentOS/RHEL: sudo yum install ghostscript

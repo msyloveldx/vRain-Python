@@ -3,7 +3,7 @@
 """
 字体支持检查工具
 检查text_ba目录下所选文本字符的主字体支持情况，把主字体不支持的字符及频次写入replace.tmp文件
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang@gmail.com, 2025
 """
 

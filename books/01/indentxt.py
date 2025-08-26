@@ -4,7 +4,7 @@
 整段缩进文本格式化脚本
 将本脚本放到书籍目录下，将原始文本保存在tmp目录下，需要整段缩进的段首添加S2标识（2代表缩进2个空格）
 脚本格式化后的文本将存入text目录下，用于书籍制作
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang, 2025.03
 """
 

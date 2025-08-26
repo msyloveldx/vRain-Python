@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 PDF插图工具 - 将图片插入到PDF文件的指定位置
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang, 2024.1.5
 """
 

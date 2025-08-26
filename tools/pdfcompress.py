@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 压缩某一目录下的文件名不是以'_已压缩'结尾的PDF文件
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang, 2025.4
 """
 

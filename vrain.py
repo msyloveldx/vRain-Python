@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 vRain中文古籍刻本风格直排电子书制作工具
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang@gmail.com
 """
 
@@ -29,7 +29,7 @@ import opencc
 
 # 全局变量
 SOFTWARE = 'vRain'
-VERSION = 'v1.4-Python'
+VERSION = 'v1.4'
 
 class FontChecker:
     """字体检查工具类"""
@@ -63,12 +63,14 @@ class ChineseConverter:
 class VRainPDFGenerator:
     """vRain PDF生成器主类"""
     
-    def __init__(self, book_id: str, from_text: int = 1, to_text: int = 1, 
+    def __init__(self, text_file, book_cfg_path, cover_path, from_page: int = 1, to_page: int = None,
                  test_pages: Optional[int] = None, compress: bool = False, 
                  verbose: bool = False):
-        self.book_id = book_id
-        self.from_text = from_text
-        self.to_text = to_text
+        self.text_file = text_file
+        self.book_cfg_path = book_cfg_path
+        self.cover_path = cover_path
+        self.from_page = from_page
+        self.to_page = to_page
         self.test_pages = test_pages
         self.compress = compress
         self.verbose = verbose
@@ -97,21 +99,65 @@ class VRainPDFGenerator:
         self._setup_fonts()
         self._calculate_positions()
     
+    # def _load_configurations(self):
+    #     """加载配置文件"""
+    #     # 检查必要的目录和文件
+    #     book_dir = Path(f"books/{self.book_id}")
+    #     if not book_dir.exists():
+    #         raise FileNotFoundError(f"错误：未发现该书籍目录'books/{self.book_id}'！")
+    #
+    #     text_dir = book_dir / "text"
+    #     if not text_dir.exists():
+    #         raise FileNotFoundError(f"错误: 未发现该书籍文本目录'books/{self.book_id}/text'！")
+    #
+    #     book_cfg_path = book_dir / "book.cfg"
+    #     if not book_cfg_path.exists():
+    #         raise FileNotFoundError(f"错误：未发现该书籍排版配置文件'books/{self.book_id}/book.cfg'！")
+    #
+    #     # 加载中文数字映射
+    #     zh_num_path = Path("db/num2zh_jid.txt")
+    #     if zh_num_path.exists():
+    #         with open(zh_num_path, 'r', encoding='utf-8') as f:
+    #             for line in f:
+    #                 line = line.strip()
+    #                 if '|' in line:
+    #                     num, zh = line.split('|', 1)
+    #                     self.zh_numbers[int(num)] = zh
+    #
+    #     # 加载书籍配置
+    #     self._load_config_file(book_cfg_path, self.book_config)
+    #     print(f"\t标题：{self.book_config.get('title', '')}")
+    #     print(f"\t作者：{self.book_config.get('author', '')}")
+    #     print(f"\t背景：{self.book_config.get('canvas_id', '')}")
+    #     print(f"\t每列字数：{self.book_config.get('row_num', '')}")
+    #     print(f"\t是否无标点：{self.book_config.get('if_nocomma', '')}")
+    #     print(f"\t标点归一化：{self.book_config.get('if_onlyperiod', '')}")
+    #
+    #     # 加载背景图配置
+    #     canvas_id = self.book_config.get('canvas_id')
+    #     if not canvas_id:
+    #         raise ValueError("错误：未定义背景图ID 'canvas_id'！")
+    #
+    #     canvas_cfg_path = Path(f"canvas/{canvas_id}.cfg")
+    #     canvas_jpg_path = Path(f"canvas/{canvas_id}.jpg")
+    #
+    #     if not canvas_cfg_path.exists():
+    #         raise FileNotFoundError("错误：未发现背景图cfg配置文件！")
+    #     if not canvas_jpg_path.exists():
+    #         raise FileNotFoundError("错误：未发现背景图jpg图片文件！")
+    #
+    #     self._load_config_file(canvas_cfg_path, self.canvas_config)
+    #     print(f"\t尺寸：{self.canvas_config.get('canvas_width', '')} x {self.canvas_config.get('canvas_height', '')}")
+    #     print(f"\t列数：{self.canvas_config.get('leaf_col', '')}")
+
     def _load_configurations(self):
         """加载配置文件"""
-        # 检查必要的目录和文件
-        book_dir = Path(f"books/{self.book_id}")
-        if not book_dir.exists():
-            raise FileNotFoundError(f"错误：未发现该书籍目录'books/{self.book_id}'！")
-        
-        text_dir = book_dir / "text"
-        if not text_dir.exists():
-            raise FileNotFoundError(f"错误: 未发现该书籍文本目录'books/{self.book_id}/text'！")
-        
-        book_cfg_path = book_dir / "book.cfg"
-        if not book_cfg_path.exists():
-            raise FileNotFoundError(f"错误：未发现该书籍排版配置文件'books/{self.book_id}/book.cfg'！")
-        
+        if not self.text_file.exists():
+            raise FileNotFoundError(f"错误: 未发现该书籍文本{self.text_file}！")
+
+        if not self.book_cfg_path.exists():
+            raise FileNotFoundError(f"错误：未发现该书籍排版配置文件{self.book_cfg_path}！")
+
         # 加载中文数字映射
         zh_num_path = Path("db/num2zh_jid.txt")
         if zh_num_path.exists():
@@ -121,29 +167,29 @@ class VRainPDFGenerator:
                     if '|' in line:
                         num, zh = line.split('|', 1)
                         self.zh_numbers[int(num)] = zh
-        
+
         # 加载书籍配置
-        self._load_config_file(book_cfg_path, self.book_config)
+        self._load_config_file(self.book_cfg_path, self.book_config)
         print(f"\t标题：{self.book_config.get('title', '')}")
         print(f"\t作者：{self.book_config.get('author', '')}")
         print(f"\t背景：{self.book_config.get('canvas_id', '')}")
         print(f"\t每列字数：{self.book_config.get('row_num', '')}")
         print(f"\t是否无标点：{self.book_config.get('if_nocomma', '')}")
         print(f"\t标点归一化：{self.book_config.get('if_onlyperiod', '')}")
-        
+
         # 加载背景图配置
         canvas_id = self.book_config.get('canvas_id')
         if not canvas_id:
             raise ValueError("错误：未定义背景图ID 'canvas_id'！")
-        
+
         canvas_cfg_path = Path(f"canvas/{canvas_id}.cfg")
         canvas_jpg_path = Path(f"canvas/{canvas_id}.jpg")
-        
+
         if not canvas_cfg_path.exists():
             raise FileNotFoundError("错误：未发现背景图cfg配置文件！")
         if not canvas_jpg_path.exists():
             raise FileNotFoundError("错误：未发现背景图jpg图片文件！")
-        
+
         self._load_config_file(canvas_cfg_path, self.canvas_config)
         print(f"\t尺寸：{self.canvas_config.get('canvas_width', '')} x {self.canvas_config.get('canvas_height', '')}")
         print(f"\t列数：{self.canvas_config.get('leaf_col', '')}")
@@ -314,45 +360,71 @@ class VRainPDFGenerator:
         
         return char, None
     
-    def load_texts(self) -> List[str]:
+    # def load_texts(self) -> List[str]:
+    #     """加载文本文件"""
+    #     texts = ['']  # 索引0为空，从1开始
+    #     text_dir = Path(f"books/{self.book_id}/text")
+    #
+    #     # 检查是否存在特殊文件
+    #     has_000 = (text_dir / "000.txt").exists()
+    #     has_999 = (text_dir / "999.txt").exists()
+    #
+    #     print("读取该书籍全部文本文件'books/{}/text/*.txt'...".format(self.book_id), end='')
+    #
+    #     # 获取所有txt文件并排序
+    #     txt_files = sorted([f for f in text_dir.glob("*.txt") if f.is_file()])
+    #
+    #     for txt_file in txt_files:
+    #         print(f"读取文件: {txt_file.name}")
+    #         content = ""
+    #         with open(txt_file, 'r', encoding='utf-8') as f:
+    #             for line in f:
+    #                 line = line.strip()
+    #                 if not line:
+    #                     continue
+    #
+    #                 # 标点符号处理
+    #                 line = self._process_punctuation(line)
+    #
+    #                 # 处理特殊字符
+    #                 line = line.replace('@', ' ')  # @代表空格
+    #
+    #                 # 计算段落补齐空格
+    #                 line = self._calculate_paragraph_spaces(line)
+    #                 content += line
+    #
+    #         print(f"文件 {txt_file.name} 处理后内容长度: {len(content)}")
+    #         texts.append(content)
+    #
+    #     print(f"{len(texts)-1}个文本文件")
+    #     return texts
+
+    def load_texts(self, text_file):
         """加载文本文件"""
-        texts = ['']  # 索引0为空，从1开始
-        text_dir = Path(f"books/{self.book_id}/text")
+        print(f"读取文件: {text_file.name}")
+        content = ""
         
-        # 检查是否存在特殊文件
-        has_000 = (text_dir / "000.txt").exists()
-        has_999 = (text_dir / "999.txt").exists()
+        # 直接读取整个文件，保持原始格式
+        with open(text_file, 'r', encoding='utf-8') as f:
+            raw_content = f.read()
         
-        print("读取该书籍全部文本文件'books/{}/text/*.txt'...".format(self.book_id), end='')
+        print(f"文件 {text_file.name} 原始内容长度: {len(raw_content)}")
         
-        # 获取所有txt文件并排序
-        txt_files = sorted([f for f in text_dir.glob("*.txt") if f.is_file()])
-        
-        for txt_file in txt_files:
-            print(f"读取文件: {txt_file.name}")
-            content = ""
-            with open(txt_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    # 标点符号处理
-                    line = self._process_punctuation(line)
-                    
-                    # 处理特殊字符
-                    line = line.replace('@', ' ')  # @代表空格
-                    
-                    # 计算段落补齐空格
-                    line = self._calculate_paragraph_spaces(line)
-                    content += line
-            
-            print(f"文件 {txt_file.name} 处理后内容长度: {len(content)}")
-            texts.append(content)
-        
-        print(f"{len(texts)-1}个文本文件")
-        return texts
-    
+        # 简化处理：只做基本的标点符号处理
+        for line in raw_content.split('\n'):
+            if line.strip():  # 只有非空行才处理
+                # 标点符号处理
+                line = self._process_punctuation(line.strip())
+                # 处理特殊字符
+                line = line.replace('@', ' ')  # @代表空格
+                content += line
+            else:
+                # 保留换行符作为分隔
+                content += '\n'
+
+        print(f"文件 {text_file.name} 处理后内容长度: {len(content)}")
+        return content
+
     def _process_punctuation(self, text: str) -> str:
         """处理标点符号"""
         # 标点符号替换
@@ -440,15 +512,165 @@ class VRainPDFGenerator:
         
         return original_text
     
+    def _should_skip_char(self, char: str, chars: List[str], char_index: int) -> bool:
+        """判断是否应该跳过字符"""
+        # 跳过空白字符
+        if char in [' ', '\n', '\r', '\t']:
+            return True
+        
+        # 跳过特殊控制字符
+        if char in ['%', '$', '&']:
+            return True
+        
+        # 处理书名号（如果配置为侧线）
+        if char in ['《', '》'] and self.book_config.get('if_book_vline') == 1:
+            return True
+        
+        # 处理@符号（空格）
+        if char == '@':
+            return True
+        
+        return False
+    
+    def _detect_chapter_title(self, text: str, start_index: int) -> Tuple[Optional[str], int]:
+        """检测章节标题
+        返回: (章节标题, 章节标题结束位置)
+        """
+        import re
+        
+        # 从当前位置开始查找章节标题
+        remaining_text = text[start_index:]
+        
+        # 匹配章节标题模式：第X章 标题名
+        chapter_pattern = r'^第(\d+)章\s+([^\n\r]+)'
+        match = re.match(chapter_pattern, remaining_text)
+        
+        if match:
+            chapter_title = match.group(0)  # 完整的章节标题
+            end_pos = start_index + match.end()
+            return chapter_title, end_pos
+        
+        return None, start_index
+    
+    def _find_chapter_end(self, text: str, start_index: int) -> int:
+        """查找章节结束位置（下一章开始或文本结束）"""
+        import re
+        
+        # 从章节内容开始位置查找下一章
+        remaining_text = text[start_index:]
+        next_chapter_pattern = r'第\d+章\s+'
+        
+        match = re.search(next_chapter_pattern, remaining_text)
+        if match:
+            return start_index + match.start()
+        
+        # 如果没有找到下一章，返回文本结束位置
+        return len(text)
+    
+    def _find_comment_end(self, chars: List[str], start_index: int) -> int:
+        """查找批注结束位置"""
+        for i in range(start_index + 1, len(chars)):
+            if chars[i] == '】':
+                return i
+        return -1
+    
+    def _start_new_page(self, c, page_num: int, canvas_width: float, canvas_height: float, background_path: Path):
+        """开始新页面"""
+        print(f"创建新PDF页[{page_num}]...")
+        
+        # 添加背景图
+        if background_path.exists():
+            c.drawImage(str(background_path), 0, 0, canvas_width, canvas_height)
+        else:
+            print(f"警告：背景图 {background_path} 不存在")
+        
+        # 添加页面标题
+        self._add_page_title(c, 0, canvas_width, canvas_height)  # 使用固定标题
+        
+        # 添加页码
+        self._add_page_number(c, page_num, canvas_width, canvas_height)
+    
+    def _draw_char_at_position(self, c, char: str, position_index: int, is_chapter_title: bool = False):
+        """在指定位置绘制字符"""
+        if position_index >= len(self.positions_left):
+            return
+        
+        # 获取合适的字体
+        font_name = self.get_font_for_char(char, self.text_fonts)
+        if not font_name:
+            font_name = self.text_fonts[0] if self.text_fonts else None
+        
+        if not font_name or font_name not in self.fonts:
+            print(f"警告：无法找到字符 '{char}' 的合适字体")
+            return
+        
+        # 尝试字符转换
+        display_char, converted_font = self.try_char_conversion(char)
+        if converted_font:
+            font_name = converted_font
+            char = display_char
+        
+        # 设置字体和大小
+        if is_chapter_title:
+            # 章节标题使用稍大的字体
+            font_size = int(self.fonts[font_name]['text_size'] * 1.2)
+        else:
+            font_size = self.fonts[font_name]['text_size']
+            
+        c.setFont(font_name, font_size)
+        c.setFillColor(black)
+        
+        # 获取位置
+        x, y = self.positions_left[position_index]
+        
+        # 调整字符位置（居中）
+        x += (self._get_column_width() - font_size) / 2
+        
+        try:
+            c.drawString(x, y, char)
+        except Exception as e:
+            print(f"警告：无法绘制字符 '{char}': {e}")
+    
+    def _draw_chapter_title(self, c, chapter_title: str, canvas_width: float, canvas_height: float):
+        """在第一列绘制章节标题"""
+        if not chapter_title or not self.text_fonts:
+            return 0
+        
+        font_name = self.text_fonts[0]
+        font_size = int(self.fonts[font_name]['text_size'] * 1.2)  # 章节标题稍大
+        c.setFont(font_name, font_size)
+        c.setFillColor(red)  # 章节标题用红色
+        
+        # 获取第一列的位置信息
+        row_num = int(self.book_config.get('row_num', 30))
+        chars_drawn = 0
+        
+        # 在第一列绘制章节标题
+        for i, char in enumerate(chapter_title):
+            if i >= row_num:  # 如果章节标题超过一列长度，截断
+                break
+                
+            if chars_drawn < len(self.positions_left):
+                x, y = self.positions_left[chars_drawn]
+                x += (self._get_column_width() - font_size) / 2
+                
+                try:
+                    c.drawString(x, y, char)
+                    chars_drawn += 1
+                except Exception as e:
+                    print(f"警告：无法绘制章节标题字符 '{char}': {e}")
+        
+        return chars_drawn
+    
     def print_welcome(self):
         """打印欢迎信息"""
         print('-' * 60)
         print(f"\t{SOFTWARE} {VERSION}，兀雨古籍刻本电子书制作工具")
         print(f"\t作者：GitHub@shanleiguang 小红书@兀雨书屋")
-        print(f"\tPython版本转换：AI Assistant")
+        print(f"\tPython版本转换：msyloveldx")
         print('-' * 60)
     
-    def generate_pdf(self):
+    def generate_pdf(self, text_file):
         """生成PDF文件"""
         self.print_welcome()
         
@@ -456,14 +678,27 @@ class VRainPDFGenerator:
             print(f"注意：-z 测试模式，仅输出{self.test_pages}页用于调试排版参数！")
         
         # 加载文本
-        texts = self.load_texts()
+        text_content = self.load_texts(text_file)
         
-        # 创建PDF文件
-        pdf_filename = f"《{self.book_config.get('title', '')}》文本{self.from_text}至{self.to_text}"
+        # 创建PDF文件名
+        title = self.book_config.get('title', '')
+        if self.from_page == 1 and self.to_page is None:
+            # 默认情况，输出全部内容
+            pdf_filename = f"《{title}》文本"
+        elif self.to_page is None:
+            # 从指定页开始输出全部内容
+            pdf_filename = f"《{title}》文本{self.from_page}至末"
+        else:
+            # 指定页数范围
+            pdf_filename = f"《{title}》文本{self.from_page}至{self.to_page}"
+        
         if self.test_pages:
             pdf_filename += '_test'
         
-        pdf_path = Path(f"books/{self.book_id}/{pdf_filename}.pdf")
+        pdf_path = Path(f"results/{pdf_filename}.pdf")
+        
+        # 确保results目录存在
+        pdf_path.parent.mkdir(exist_ok=True)
         
         # 使用reportlab创建PDF
         canvas_width = float(self.canvas_config.get('canvas_width', 2480))
@@ -475,18 +710,18 @@ class VRainPDFGenerator:
         # 设置PDF元数据
         c.setTitle(self.book_config.get('title', ''))
         c.setAuthor(self.book_config.get('author', ''))
-        c.setCreator(f"{SOFTWARE} {VERSION}，兀雨古籍刻本直排电子书制作工具")
+        c.setCreator(f"{SOFTWARE} {VERSION}，古籍刻本直排电子书制作工具")
         
         # 添加封面
         self._add_cover(c, canvas_width, canvas_height)
         
         # 处理文本并生成页面
-        self._process_texts_and_generate_pages(c, texts, canvas_width, canvas_height)
+        self._process_texts_and_generate_pages(c, text_content, canvas_width, canvas_height)
         
         # 保存PDF
         c.save()
         
-        print(f"生成PDF文件'books/{self.book_id}/{pdf_filename}.pdf'...完成！")
+        print(f"生成PDF文件'results/{pdf_filename}.pdf'...完成！")
         
         # 压缩处理
         if self.compress:
@@ -494,17 +729,28 @@ class VRainPDFGenerator:
         else:
             print("建议：使用'-c'参数对PDF文件进行压缩！")
     
+    # def _add_cover(self, c, canvas_width: float, canvas_height: float):
+    #     """添加封面"""
+    #     cover_path = Path(f"books/{self.book_id}/cover.jpg")
+    #
+    #     if cover_path.exists():
+    #         print(f"发现封面图片'{self.book_id}/books/{self.book_id}/cover.jpg' ...")
+    #         c.drawImage(str(cover_path), 0, 0, canvas_width, canvas_height)
+    #     else:
+    #         print(f"未发现封面文件'{self.book_id}/books/{self.book_id}/cover.jpg'，创建简易封面...")
+    #         self._create_simple_cover(c, canvas_width, canvas_height)
+    #
+    #     c.showPage()  # 结束封面页
+
     def _add_cover(self, c, canvas_width: float, canvas_height: float):
         """添加封面"""
-        cover_path = Path(f"books/{self.book_id}/cover.jpg")
-        
-        if cover_path.exists():
-            print(f"发现封面图片'{self.book_id}/books/{self.book_id}/cover.jpg' ...")
-            c.drawImage(str(cover_path), 0, 0, canvas_width, canvas_height)
+        if self.cover_path.exists():
+            print(f"发现封面图片{self.cover_path}")
+            c.drawImage(str(self.cover_path), 0, 0, canvas_width, canvas_height)
         else:
-            print(f"未发现封面文件'{self.book_id}/books/{self.book_id}/cover.jpg'，创建简易封面...")
+            print(f"未发现封面图片{self.cover_path}，创建简易封面...")
             self._create_simple_cover(c, canvas_width, canvas_height)
-        
+
         c.showPage()  # 结束封面页
     
     def _create_simple_cover(self, c, canvas_width: float, canvas_height: float):
@@ -561,54 +807,255 @@ class VRainPDFGenerator:
                 y = canvas_height - cover_author_y - cover_author_font_size * i * 1.2
                 c.drawString(x, y, char)
     
-    def _process_texts_and_generate_pages(self, c, texts: List[str], 
+    def _process_texts_and_generate_pages(self, c, text_content: str, 
                                         canvas_width: float, canvas_height: float):
-        """处理文本并生成页面"""
-        # 这是一个简化的实现，实际的文本处理和页面生成逻辑会更复杂
-        # 由于原Perl代码非常复杂，这里提供基本框架
-        
+        """处理文本并生成页面（支持章节处理）"""
         canvas_id = self.book_config.get('canvas_id')
         background_path = Path(f"canvas/{canvas_id}.jpg")
         
-        page_num = 0
+        if not text_content or not text_content.strip():
+            print("警告：文本内容为空")
+            return
         
-        for text_id in range(self.from_text, self.to_text + 1):
+        # 检查是否启用章节模式
+        enable_chapter_mode = self.book_config.get('enable_chapter_mode', 0)
+        print(f"章节模式: {'启用' if enable_chapter_mode else '禁用'}")
+        
+        if enable_chapter_mode:
+            self._process_with_chapters(c, text_content, canvas_width, canvas_height, background_path)
+        else:
+            self._process_without_chapters(c, text_content, canvas_width, canvas_height, background_path)
+    
+    def _process_with_chapters(self, c, text_content: str, canvas_width: float, canvas_height: float, background_path: Path):
+        """章节模式处理文本"""
+        print(f"处理文本，总字符数: {len(text_content)}")
+        
+        # 解析章节
+        chapters = self._parse_chapters(text_content)
+        print(f"检测到 {len(chapters)} 个章节")
+        
+        page_num = 0
+        total_processed_chars = 0
+        
+        for chapter_index, (chapter_title, chapter_content) in enumerate(chapters):
             if self.test_pages and page_num >= self.test_pages:
                 break
             
-            if text_id < len(texts):
-                text_content = texts[text_id]
-                print(f"处理文本 {text_id}，内容长度: {len(text_content)}")
+            print(f"处理章节: {chapter_title}")
+            
+            # 开始新页面（每章一页）
+            current_page = self.from_page + page_num
+            self._start_new_page(c, current_page, canvas_width, canvas_height, background_path)
+            
+            # 在第一列绘制章节标题
+            chapter_chars_used = self._draw_chapter_title(c, chapter_title, canvas_width, canvas_height)
+            
+            # 计算内容开始位置（跳过第一列）
+            row_num = int(self.book_config.get('row_num', 30))
+            content_start_pos = row_num  # 从第二列开始
+            page_char_count = content_start_pos
+            
+            print(f"章节内容长度: {len(chapter_content)}, 内容开始位置: {content_start_pos}, 页面总字符数: {self.page_chars_num}")
+            
+            # 处理章节内容
+            chars = list(chapter_content)
+            char_index = 0
+            
+            while char_index < len(chars):
+                # 检查是否需要换页
+                if page_char_count >= self.page_chars_num:
+                    print(f"换页：当前字符位置 {page_char_count} >= 页面字符数 {self.page_chars_num}")
+                    c.showPage()
+                    page_num += 1
+                    current_page = self.from_page + page_num
+                    self._start_new_page(c, current_page, canvas_width, canvas_height, background_path)
+                    page_char_count = 0  # 新页面从第一列开始
                 
-                # 添加背景图
-                if background_path.exists():
-                    c.drawImage(str(background_path), 0, 0, canvas_width, canvas_height)
+                char = chars[char_index]
+                char_index += 1
+                
+                # 处理特殊字符和控制符
+                if self._should_skip_char(char, chars, char_index - 1):
+                    continue
+                
+                # 处理批注
+                if char == '【':
+                    comment_end = self._find_comment_end(chars, char_index - 1)
+                    if comment_end != -1:
+                        char_index = comment_end + 1
+                        continue
+                    else:
+                        continue
+                
+                # 绘制字符
+                if page_char_count < len(self.positions_left):
+                    print(f"绘制字符 '{char}' 在位置 {page_char_count}")
+                    self._draw_char_at_position(c, char, page_char_count)
+                    page_char_count += 1
+                    total_processed_chars += 1
                 else:
-                    print(f"警告：背景图 {background_path} 不存在")
-                
-                # 添加页面标题
-                self._add_page_title(c, text_id, canvas_width, canvas_height)
-                
-                # 处理文本内容
-                if text_content.strip():
-                    self._add_text_content(c, text_content, canvas_width, canvas_height)
-                else:
-                    print(f"警告：文本 {text_id} 内容为空")
-                
-                # 添加页码
-                self._add_page_number(c, page_num + 1, canvas_width, canvas_height)
-                
+                    print(f"警告：字符位置 {page_char_count} 超出范围 {len(self.positions_left)}")
+            
+            # 章节结束，准备下一页
+            if chapter_index < len(chapters) - 1:  # 不是最后一章
                 c.showPage()
                 page_num += 1
+        
+        # 完成最后一页
+        if page_char_count > 0:
+            c.showPage()
+        
+        actual_pages = page_num + 1
+        print(f"生成完成，共 {actual_pages} 页，处理了 {total_processed_chars} 个字符")
+    
+    def _process_without_chapters(self, c, text_content: str, canvas_width: float, canvas_height: float, background_path: Path):
+        """非章节模式处理文本（原逻辑）"""
+        # 将文本转换为字符列表
+        chars = list(text_content)
+        total_chars = len(chars)
+        print(f"处理文本，总字符数: {total_chars}")
+        
+        # 计算需要跳过的字符数（如果指定了起始页）
+        chars_to_skip = 0
+        if self.from_page > 1:
+            chars_to_skip = (self.from_page - 1) * self.page_chars_num
+            print(f"从第 {self.from_page} 页开始，跳过前 {chars_to_skip} 个字符")
+        
+        # 计算最大输出字符数（如果指定了结束页）
+        max_chars_to_process = None
+        if self.to_page is not None and self.to_page >= self.from_page:
+            page_count = self.to_page - self.from_page + 1
+            max_chars_to_process = page_count * self.page_chars_num
+            print(f"输出 {self.from_page} 到 {self.to_page} 页，共 {page_count} 页，最多处理 {max_chars_to_process} 个字符")
+        else:
+            print(f"从第 {self.from_page} 页开始，输出全部剩余内容")
+        
+        # 字符处理状态
+        char_index = 0
+        processed_chars = 0  # 已处理的有效字符数
+        page_num = 0
+        page_char_count = 0  # 当前页已放置的字符数
+        
+        # 跳过指定数量的有效字符
+        while char_index < total_chars and processed_chars < chars_to_skip:
+            char = chars[char_index]
+            char_index += 1
+            
+            # 跳过特殊字符时不计入字符数
+            if self._should_skip_char(char, chars, char_index - 1):
+                continue
+            
+            # 处理批注
+            if char == '【':
+                comment_end = self._find_comment_end(chars, char_index - 1)
+                if comment_end != -1:
+                    char_index = comment_end + 1
+                    continue
+                else:
+                    continue
+            
+            processed_chars += 1
+        
+        print(f"跳过了 {processed_chars} 个有效字符，从字符索引 {char_index} 开始处理")
+        
+        # 重置计数器，开始实际页面生成
+        processed_chars = 0
+        page_char_count = 0
+        
+        # 开始第一页
+        self._start_new_page(c, self.from_page, canvas_width, canvas_height, background_path)
+        
+        while char_index < total_chars:
+            # 检查测试页数限制
+            if self.test_pages and page_num >= self.test_pages:
+                break
+            
+            # 检查是否达到指定的最大字符数
+            if max_chars_to_process is not None and processed_chars >= max_chars_to_process:
+                print(f"已达到指定页数范围，停止处理")
+                break
+                
+            # 检查是否需要换页
+            if page_char_count >= self.page_chars_num:
+                c.showPage()
+                page_num += 1
+                page_char_count = 0
+                current_page = self.from_page + page_num
+                self._start_new_page(c, current_page, canvas_width, canvas_height, background_path)
+            
+            char = chars[char_index]
+            char_index += 1
+            
+            # 处理特殊字符和控制符
+            if self._should_skip_char(char, chars, char_index - 1):
+                continue
+            
+            # 处理批注
+            if char == '【':
+                comment_end = self._find_comment_end(chars, char_index - 1)
+                if comment_end != -1:
+                    comment_text = ''.join(chars[char_index:comment_end])
+                    # 处理批注文本（简化处理，可以后续优化）
+                    char_index = comment_end + 1
+                    continue
+                else:
+                    continue
+            
+            # 绘制字符
+            if page_char_count < len(self.positions_left):
+                self._draw_char_at_position(c, char, page_char_count)
+                page_char_count += 1
+                processed_chars += 1
+        
+        # 完成最后一页
+        if page_char_count > 0:
+            c.showPage()
+        
+        actual_pages = page_num + 1
+        actual_page_range = f"{self.from_page} 到 {self.from_page + page_num}"
+        print(f"生成完成，共 {actual_pages} 页（第 {actual_page_range} 页）")
+    
+    def _parse_chapters(self, text_content: str) -> List[Tuple[str, str]]:
+        """解析章节
+        返回: [(章节标题, 章节内容), ...]
+        """
+        import re
+        
+        chapters = []
+        
+        # 查找所有章节标题
+        chapter_pattern = r'第(\d+)章\s+([^\n\r]+)'
+        matches = list(re.finditer(chapter_pattern, text_content))
+        
+        print(f"章节解析：找到 {len(matches)} 个章节")
+        
+        if not matches:
+            # 如果没有找到章节，将整个文本作为一个章节
+            print("未找到章节，将整个文本作为一个章节")
+            return [("", text_content)]
+        
+        for i, match in enumerate(matches):
+            chapter_title = match.group(0)  # 完整的章节标题
+            content_start = match.end()
+            
+            # 查找章节内容结束位置
+            if i + 1 < len(matches):
+                content_end = matches[i + 1].start()
             else:
-                print(f"警告：文本索引 {text_id} 超出范围，texts长度: {len(texts)}")
+                content_end = len(text_content)
+            
+            chapter_content = text_content[content_start:content_end].strip()
+            print(f"章节 {i+1}: '{chapter_title}', 内容长度: {len(chapter_content)}")
+            chapters.append((chapter_title, chapter_content))
+        
+        return chapters
     
     def _add_page_title(self, c, text_id: int, canvas_width: float, canvas_height: float):
         """添加页面标题"""
         title = self.book_config.get('title', '')
         title_postfix = self.book_config.get('title_postfix', '')
         
-        if title_postfix:
+        if title_postfix and text_id > 0:
             # 处理标题后缀
             zh_num = self.zh_numbers.get(text_id, str(text_id))
             title_postfix = title_postfix.replace('X', zh_num)
@@ -616,7 +1063,7 @@ class VRainPDFGenerator:
                 title_postfix = '序'
             full_title = title + title_postfix
         else:
-            full_title = title
+            full_title = '  ' + title
         
         title_font_size = int(self.book_config.get('title_font_size', 70))
         title_y = int(self.book_config.get('title_y', 1200))
@@ -631,72 +1078,7 @@ class VRainPDFGenerator:
                 y = title_y - title_font_size * i * title_ydis
                 c.drawString(x, y, char)
     
-    def _add_text_content(self, c, text_content: str, canvas_width: float, canvas_height: float):
-        """添加文本内容"""
-        if not text_content or not self.text_fonts:
-            return
-        
-        # 获取文本字体和大小
-        font_name = self.text_fonts[0]
-        font_size = self.fonts[font_name]['text_size']
-        
-        c.setFont(font_name, font_size)
-        c.setFillColor(black)
-        
-        # 简化的文本处理：逐字符添加到对应位置
-        char_index = 0
-        max_chars = min(len(text_content), len(self.positions_left))
-        
-        for i in range(max_chars):
-            if char_index >= len(text_content):
-                break
-                
-            char = text_content[char_index]
-            
-            # 跳过特殊字符
-            if char in [' ', '\n', '\r', '\t']:
-                char_index += 1
-                continue
-            
-            # 处理批注标记
-            if char == '【':
-                # 跳过批注内容
-                end_index = text_content.find('】', char_index)
-                if end_index != -1:
-                    char_index = end_index + 1
-                    continue
-                else:
-                    char_index += 1
-                    continue
-            
-            # 处理特殊控制字符
-            if char in ['%', '$', '&']:
-                char_index += 1
-                continue
-            
-            # 处理书名号（如果配置为侧线）
-            if char in ['《', '》'] and self.book_config.get('if_book_vline') == 1:
-                char_index += 1
-                continue
-            
-            # 处理@符号（空格）
-            if char == '@':
-                char_index += 1
-                continue
-            
-            # 获取字符位置
-            if i < len(self.positions_left):
-                x, y = self.positions_left[i]
-                
-                # 调整字符位置（居中）
-                x += (self._get_column_width() - font_size) / 2
-                
-                try:
-                    c.drawString(x, y, char)
-                except Exception as e:
-                    print(f"警告：无法绘制字符 '{char}': {e}")
-            
-            char_index += 1
+
     
     def _get_column_width(self):
         """获取列宽"""
@@ -766,32 +1148,48 @@ def print_help():
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='vRain中文古籍刻本风格直排电子书制作工具')
-    parser.add_argument('-b', '--book', required=True, help='书籍ID')
-    parser.add_argument('-f', '--from', type=int, default=1, help='书籍文本的起始序号')
-    parser.add_argument('-t', '--to', type=int, default=1, help='书籍文本的结束序号')
-    parser.add_argument('-z', '--test', type=int, help='测试模式，仅输出指定页数')
-    parser.add_argument('-c', '--compress', action='store_true', help='压缩PDF')
-    parser.add_argument('-v', '--verbose', action='store_true', help='显示更多信息')
-    parser.add_argument('--help-detail', action='store_true', help='显示详细帮助')
-    
-    args = parser.parse_args()
-    
-    if args.help_detail:
-        print_help()
-        return
+    # print_help()
     
     try:
+        # 示例1：处理史记古籍（非章节模式）
+        text_file = Path('books/01/text/000.txt')
+        book_cfg_path = Path('books/01/book.cfg')
+        cover_path = Path('books/01/cover.jpg')
+        
+        # 示例2：处理神武天帝小说（章节模式）
+        # text_file = Path('books/04/text/神武天帝.txt')
+        # book_cfg_path = Path('books/04/book.cfg')
+        # cover_path = Path('books/04/cover.jpg')
+        
+        # 章节模式测试：只生成前3页
+        # generator = VRainPDFGenerator(
+        #     text_file = text_file,
+        #     book_cfg_path = book_cfg_path,
+        #     cover_path = cover_path,
+        #     test_pages=3,  # 测试模式，只生成3页
+        #     verbose=True
+        # )
+        
+        # 示例3：输出指定页数范围
+        # generator = VRainPDFGenerator(
+        #     text_file = text_file,
+        #     book_cfg_path = book_cfg_path,
+        #     cover_path = cover_path,
+        #     from_page=1,
+        #     to_page=3,
+        #     verbose=True
+        # )
+        
+        # 示例4：从指定页开始输出全部内容
         generator = VRainPDFGenerator(
-            book_id=args.book,
-            from_text=getattr(args, 'from'),
-            to_text=args.to,
-            test_pages=args.test,
-            compress=args.compress,
-            verbose=args.verbose
+            text_file = text_file,
+            book_cfg_path = book_cfg_path,
+            cover_path = cover_path,
+            from_page=1,
+            verbose=True
         )
         
-        generator.generate_pdf()
+        generator.generate_pdf(text_file)
         
     except Exception as e:
         print(f"错误：{e}")

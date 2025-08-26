@@ -3,7 +3,7 @@
 """
 印章添加工具
 读取yins.cfg配置文件，将印章图片插入到PDF文件相应页码的相应位置
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang, 2025.7
 """
 

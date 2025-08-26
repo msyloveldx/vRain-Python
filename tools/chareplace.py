@@ -3,7 +3,7 @@
 """
 字符替换工具
 读取text_ba目录下的文件，根据replace.txt替换字符并覆盖写入text目录对应文件
-Python版本 by AI Assistant, 2025/01
+Python版本 by msyloveldx, 2025/08
 原作者: shanleiguang@gmail.com, 2025
 """
 

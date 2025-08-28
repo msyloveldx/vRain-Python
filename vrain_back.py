@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 vRain中文古籍刻本风格直排电子书制作工具
-Python版本 by AI Assistant, 2025/01
-原作者: shanleiguang@gmail.com
+Python版本 by msyloveldx, 2025/08
+原作者: shanleiguang
 """
 
 import os
@@ -65,13 +65,17 @@ class VRainPDFGenerator:
     
     def __init__(self, book_id: str, from_text: int = 1, to_text: int = 1, 
                  test_pages: Optional[int] = None, compress: bool = False, 
-                 verbose: bool = False):
+                 verbose: bool = False, progress_callback=None, log_callback=None):
         self.book_id = book_id
         self.from_text = from_text
         self.to_text = to_text
         self.test_pages = test_pages
         self.compress = compress
         self.verbose = verbose
+        
+        # 回调函数
+        self.progress_callback = progress_callback
+        self.log_callback = log_callback
         
         # 配置数据
         self.book_config = {}
@@ -97,6 +101,13 @@ class VRainPDFGenerator:
         self._setup_fonts()
         self._calculate_positions()
     
+    def _print(self, message: str):
+        """自定义打印方法，支持GUI回调"""
+        if self.log_callback:
+            self.log_callback(message)
+        else:
+            print(message)
+
     def _load_configurations(self):
         """加载配置文件"""
         # 检查必要的目录和文件
@@ -124,12 +135,12 @@ class VRainPDFGenerator:
         
         # 加载书籍配置
         self._load_config_file(book_cfg_path, self.book_config)
-        print(f"\t标题：{self.book_config.get('title', '')}")
-        print(f"\t作者：{self.book_config.get('author', '')}")
-        print(f"\t背景：{self.book_config.get('canvas_id', '')}")
-        print(f"\t每列字数：{self.book_config.get('row_num', '')}")
-        print(f"\t是否无标点：{self.book_config.get('if_nocomma', '')}")
-        print(f"\t标点归一化：{self.book_config.get('if_onlyperiod', '')}")
+        self._print(f"\t标题：{self.book_config.get('title', '')}")
+        self._print(f"\t作者：{self.book_config.get('author', '')}")
+        self._print(f"\t背景：{self.book_config.get('canvas_id', '')}")
+        self._print(f"\t每列字数：{self.book_config.get('row_num', '')}")
+        self._print(f"\t是否无标点：{self.book_config.get('if_nocomma', '')}")
+        self._print(f"\t标点归一化：{self.book_config.get('if_onlyperiod', '')}")
         
         # 加载背景图配置
         canvas_id = self.book_config.get('canvas_id')
@@ -145,8 +156,8 @@ class VRainPDFGenerator:
             raise FileNotFoundError("错误：未发现背景图jpg图片文件！")
         
         self._load_config_file(canvas_cfg_path, self.canvas_config)
-        print(f"\t尺寸：{self.canvas_config.get('canvas_width', '')} x {self.canvas_config.get('canvas_height', '')}")
-        print(f"\t列数：{self.canvas_config.get('leaf_col', '')}")
+        self._print(f"\t尺寸：{self.canvas_config.get('canvas_width', '')} x {self.canvas_config.get('canvas_height', '')}")
+        self._print(f"\t列数：{self.canvas_config.get('leaf_col', '')}")
     
     def _load_config_file(self, file_path: Path, config_dict: Dict):
         """加载配置文件到字典"""
@@ -196,10 +207,10 @@ class VRainPDFGenerator:
                         'comment_size': self.book_config.get(f'comment_{font_name}_size', 30),
                         'rotate': self.book_config.get(f'{font_name}_rotate', 0)
                     }
-                    print(f"成功加载字体：{font_file}")
+                    self._print(f"成功加载字体：{font_file}")
                 except Exception as e:
-                    print(f"警告：字体 {font_file} 注册失败: {e}")
-                    print("  提示：reportlab不支持PostScript轮廓的OTF字体，请使用TTF格式字体")
+                    self._print(f"警告：字体 {font_file} 注册失败: {e}")
+                    self._print("  提示：reportlab不支持PostScript轮廓的OTF字体，请使用TTF格式字体")
         
         # 设置字体数组
         text_fonts_array = str(self.book_config.get('text_fonts_array', '123'))
@@ -209,7 +220,7 @@ class VRainPDFGenerator:
         
         # 确保至少有一个可用字体
         if not available_fonts:
-            print("警告：没有可用的字体！尝试使用默认字体")
+            self._print("警告：没有可用的字体！尝试使用默认字体")
             # 尝试加载默认字体
             default_fonts = ['HanaMinA.ttf', 'HanaMinB.ttf']
             for default_font in default_fonts:
@@ -323,13 +334,13 @@ class VRainPDFGenerator:
         has_000 = (text_dir / "000.txt").exists()
         has_999 = (text_dir / "999.txt").exists()
         
-        print("读取该书籍全部文本文件'books/{}/text/*.txt'...".format(self.book_id), end='')
+        self._print("读取该书籍全部文本文件'books/{}/text/*.txt'...".format(self.book_id))
         
         # 获取所有txt文件并排序
         txt_files = sorted([f for f in text_dir.glob("*.txt") if f.is_file()])
         
         for txt_file in txt_files:
-            print(f"读取文件: {txt_file.name}")
+            self._print(f"读取文件: {txt_file.name}")
             content = ""
             with open(txt_file, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -347,10 +358,10 @@ class VRainPDFGenerator:
                     line = self._calculate_paragraph_spaces(line)
                     content += line
             
-            print(f"文件 {txt_file.name} 处理后内容长度: {len(content)}")
+            self._print(f"文件 {txt_file.name} 处理后内容长度: {len(content)}")
             texts.append(content)
         
-        print(f"{len(texts)-1}个文本文件")
+        self._print(f"{len(texts)-1}个文本文件")
         return texts
     
     def _process_punctuation(self, text: str) -> str:
@@ -442,18 +453,18 @@ class VRainPDFGenerator:
     
     def print_welcome(self):
         """打印欢迎信息"""
-        print('-' * 60)
-        print(f"\t{SOFTWARE} {VERSION}，兀雨古籍刻本电子书制作工具")
-        print(f"\t作者：GitHub@shanleiguang 小红书@兀雨书屋")
-        print(f"\tPython版本转换：AI Assistant")
-        print('-' * 60)
+        self._print('-' * 60)
+        self._print(f"\t{SOFTWARE} {VERSION}，兀雨古籍刻本电子书制作工具")
+        self._print(f"\t作者：GitHub@shanleiguang 小红书@兀雨书屋")
+        self._print(f"\tPython版本转换：AI Assistant")
+        self._print('-' * 60)
     
     def generate_pdf(self):
         """生成PDF文件"""
         self.print_welcome()
         
         if self.test_pages:
-            print(f"注意：-z 测试模式，仅输出{self.test_pages}页用于调试排版参数！")
+            self._print(f"注意：-z 测试模式，仅输出{self.test_pages}页用于调试排版参数！")
         
         # 加载文本
         texts = self.load_texts()
@@ -486,23 +497,23 @@ class VRainPDFGenerator:
         # 保存PDF
         c.save()
         
-        print(f"生成PDF文件'books/{self.book_id}/{pdf_filename}.pdf'...完成！")
+        self._print(f"生成PDF文件'books/{self.book_id}/{pdf_filename}.pdf'...完成！")
         
         # 压缩处理
         if self.compress:
             self._compress_pdf(pdf_path)
         else:
-            print("建议：使用'-c'参数对PDF文件进行压缩！")
+            self._print("建议：使用'-c'参数对PDF文件进行压缩！")
     
     def _add_cover(self, c, canvas_width: float, canvas_height: float):
         """添加封面"""
         cover_path = Path(f"books/{self.book_id}/cover.jpg")
         
         if cover_path.exists():
-            print(f"发现封面图片'{self.book_id}/books/{self.book_id}/cover.jpg' ...")
+            self._print(f"发现封面图片'{self.book_id}/books/{self.book_id}/cover.jpg' ...")
             c.drawImage(str(cover_path), 0, 0, canvas_width, canvas_height)
         else:
-            print(f"未发现封面文件'{self.book_id}/books/{self.book_id}/cover.jpg'，创建简易封面...")
+            self._print(f"未发现封面文件'{self.book_id}/books/{self.book_id}/cover.jpg'，创建简易封面...")
             self._create_simple_cover(c, canvas_width, canvas_height)
         
         c.showPage()  # 结束封面页
@@ -578,13 +589,13 @@ class VRainPDFGenerator:
             
             if text_id < len(texts):
                 text_content = texts[text_id]
-                print(f"处理文本 {text_id}，内容长度: {len(text_content)}")
+                self._print(f"处理文本 {text_id}，内容长度: {len(text_content)}")
                 
                 # 添加背景图
                 if background_path.exists():
                     c.drawImage(str(background_path), 0, 0, canvas_width, canvas_height)
                 else:
-                    print(f"警告：背景图 {background_path} 不存在")
+                    self._print(f"警告：背景图 {background_path} 不存在")
                 
                 # 添加页面标题
                 self._add_page_title(c, text_id, canvas_width, canvas_height)
@@ -593,7 +604,7 @@ class VRainPDFGenerator:
                 if text_content.strip():
                     self._add_text_content(c, text_content, canvas_width, canvas_height)
                 else:
-                    print(f"警告：文本 {text_id} 内容为空")
+                    self._print(f"警告：文本 {text_id} 内容为空")
                 
                 # 添加页码
                 self._add_page_number(c, page_num + 1, canvas_width, canvas_height)
@@ -601,7 +612,7 @@ class VRainPDFGenerator:
                 c.showPage()
                 page_num += 1
             else:
-                print(f"警告：文本索引 {text_id} 超出范围，texts长度: {len(texts)}")
+                self._print(f"警告：文本索引 {text_id} 超出范围，texts长度: {len(texts)}")
     
     def _add_page_title(self, c, text_id: int, canvas_width: float, canvas_height: float):
         """添加页面标题"""
@@ -694,7 +705,7 @@ class VRainPDFGenerator:
                 try:
                     c.drawString(x, y, char)
                 except Exception as e:
-                    print(f"警告：无法绘制字符 '{char}': {e}")
+                    self._print(f"警告：无法绘制字符 '{char}': {e}")
             
             char_index += 1
     
@@ -740,12 +751,12 @@ class VRainPDFGenerator:
             
             subprocess.run(cmd, check=True)
             pdf_path.unlink()  # 删除原文件
-            print(f"压缩PDF文件'{output_path}'...完成！")
+            self._print(f"压缩PDF文件'{output_path}'...完成！")
             
         except subprocess.CalledProcessError:
-            print("警告：PDF压缩失败，请检查是否安装了Ghostscript")
+            self._print("警告：PDF压缩失败，请检查是否安装了Ghostscript")
         except FileNotFoundError:
-            print("警告：未找到Ghostscript，无法压缩PDF")
+            self._print("警告：未找到Ghostscript，无法压缩PDF")
 
 def print_help():
     """打印帮助信息"""

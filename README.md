@@ -13,6 +13,8 @@ vRain是一款中文古籍刻本风格直排电子书制作工具的Python版本
 - 🎨 **古籍风格**: 完美复刻古籍刻本的视觉效果
 - 📖 **章节模式**: 支持小说章节排版，章节标题在第一列，内容从第二列开始
 - 🔄 **双模式支持**: 章节模式和连续模式，适应不同类型的文本排版需求
+- 🖥️ **图形界面**: 提供两个GUI版本，支持单文件模式和书籍ID模式
+- 🎯 **实时反馈**: GUI版本提供实时日志显示和进度反馈
 
 ## 系统要求
 
@@ -55,7 +57,51 @@ sudo yum install ghostscript
 
 ## 使用方法
 
-### 主程序vrain.py - 生成古籍电子书
+### 图形界面版本（推荐）
+
+vRain提供了两个GUI版本，操作简单直观：
+
+#### 1. 单文件模式GUI（基于vrain.py）
+适用于处理单个文本文件
+
+**Windows用户**：
+```bash
+# 命令行运行
+python run_gui.py
+```
+
+**macOS/Linux用户**：
+```bash
+python run_gui.py
+```
+
+#### 2. 书籍ID模式GUI（基于vrain_back.py）
+适用于处理books目录下的多个文本文件
+
+**Windows用户**：
+```bash
+# 命令行运行
+python run_back_gui.py
+```
+
+**macOS/Linux用户**：
+```bash
+python run_back_gui.py
+```
+
+#### GUI功能特性
+- ✅ 图形化界面，操作简单
+- ✅ 实时日志显示和进度反馈
+- ✅ 多线程处理（避免界面卡死）
+- ✅ 支持PDF压缩和测试模式
+- ✅ 自动扫描书籍列表
+- ✅ 书籍信息显示
+
+详细使用说明请参考：[README_GUI.md](README_GUI.md)
+
+### 命令行版本
+
+#### 主程序vrain.py - 生成古籍电子书
 
 #### 基本用法
 ```bash
@@ -183,8 +229,17 @@ python addyins.py
 vRain/
 ├── vrain.py                 # 主程序（支持章节模式）
 ├── vrain_back.py            # 原Perl版本模式
+├── vrain_gui.py            # 单文件模式GUI
+├── vrain_back_gui.py       # 书籍ID模式GUI
+├── run_gui.py             # 单文件模式启动脚本
+├── run_back_gui.py        # 书籍ID模式启动脚本
+├── run_gui.bat            # Windows单文件模式启动脚本
+├── run_back_gui.bat       # Windows书籍ID模式启动脚本
+├── test_back_gui.py       # GUI功能测试脚本
 ├── requirements.txt         # Python依赖
 ├── README.md               # 项目说明
+├── README_GUI.md          # GUI使用说明
+├── GUI_README.md          # GUI专门说明
 ├── books/                  # 书籍目录
 │   ├── 01/                # 书籍01（史记-连续模式）
 │   │   ├── book.cfg       # 书籍配置
@@ -250,6 +305,15 @@ A: 在`book.cfg`中设置`enable_chapter_mode=1`，确保文本文件包含"第X
 ### Q: 章节内容不显示怎么办？
 A: 检查章节标题格式是否正确，确保文本文件编码为UTF-8，章节标题和内容之间没有特殊字符干扰。
 
+### Q: GUI无法启动怎么办？
+A: 检查Python版本（需要3.8+），确保依赖包已安装，运行`python test_back_gui.py`进行环境检查。
+
+### Q: 书籍列表为空怎么办？
+A: 检查books目录是否存在，确保books目录下的子目录命名格式正确（应为数字，如01、02等）。
+
+### Q: 如何选择使用哪个GUI版本？
+A: 单文件模式GUI适合处理任意文本文件，书籍ID模式GUI适合处理books目录下的多个文本文件。
+
 ## 性能优化建议
 
 1. **大文件处理**: 对于超大文本，建议分批处理
@@ -265,12 +329,15 @@ A: 检查章节标题格式是否正确，确保文本文件编码为UTF-8，章
 - 更好的错误处理
 - 新增章节模式支持
 - 更灵活的页数控制
+- 新增图形界面支持
+- 实时进度反馈
 
 ### 与Perl版本的兼容性
 - 配置文件格式完全兼容
 - 输出PDF效果一致
 - 支持所有原有功能
 - 新增章节处理功能
+- 新增GUI操作界面
 
 ## 贡献指南
 
@@ -297,6 +364,14 @@ A: 检查章节标题格式是否正确，确保文本文件编码为UTF-8，章
 **项目地址**: https://github.com/msyloveldx/vRain-Python
 
 ## 更新日志
+
+### v1.4.2 (2025-08-26)
+- 🖥️ 新增图形界面支持
+- 🎯 新增单文件模式GUI（基于vrain.py）
+- 📚 新增书籍ID模式GUI（基于vrain_back.py）
+- 🔄 支持实时日志显示和进度反馈
+- 🧪 新增GUI功能测试脚本
+- 📖 完善GUI使用文档
 
 ### v1.4.1 (2025-08-26)
 - ✨ 新增章节模式支持

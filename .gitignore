@@ -24,3 +24,7 @@ release.pl
 .venv/
 .git/
 .github/
+.idea/
+__pycache__/
+dist/
+buid/
